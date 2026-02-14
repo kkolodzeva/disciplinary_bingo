@@ -26,34 +26,35 @@ button { margin-top:15px; padding:8px 15px; border:none; border-radius:6px; curs
 <h2>Лиза</h2>
 <div class="grid" id="lisaGrid"></div>
 <div class="bingo" id="lisaBingo">БИНГО 🎉</div>
-<button onclick="resetBoard('lisa')">Сброс</button>
+<button id="lisaReset">Сброс</button>
 </div>
 
 <div class="board katya">
 <h2>Катя</h2>
 <div class="grid" id="katyaGrid"></div>
 <div class="bingo" id="katyaBingo">БИНГО 🎉</div>
-<button onclick="resetBoard('katya')">Сброс</button>
+<button id="katyaReset">Сброс</button>
 </div>
 </div>
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+<!-- Подключаем Firebase обычным скриптом -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
 
-// 🔹 ВАЖНО: вставь свой firebaseConfig
+<script>
+// 🔹 Вставь сюда свой firebaseConfig
 const firebaseConfig = {
   apiKey: "AIzaSyAW9t8w6e32djmNP6FWDTa91Z6KJGEtw9c",
   authDomain: "disciplinary-bingo.firebaseapp.com",
+  databaseURL: "https://disciplinary-bingo-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "disciplinary-bingo",
-  storageBucket: "disciplinary-bingo.firebasestorage.app",
+  storageBucket: "disciplinary-bingo.firebasedestorage.app",
   messagingSenderId: "267561003164",
-  appId: "1:267561003164:web:164e7ee671780b8ca9a559",
-  databaseURL: "https://disciplinary-bingo-default-rtdb.europe-west1.firebasedatabase.app"
+  appId: "1:267561003164:web:164e7ee671780b8ca9a559"
 };
 
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
 
 const lisaTasks = [
 "10к шагов","Отбой до 00:00","30 минут степпер / зарядка",
@@ -61,6 +62,7 @@ const lisaTasks = [
 "Не более 30 минут на инсту и 60 минут на ютуб",
 "Полный вечерний уход за лицом","Занятие с Коржиком"
 ];
+
 const katyaTasks = [
 "Прогулка не менее 20 минут в день","Зарядка для шеи","Сон 8 часов",
 "Английские слова","Уборка одной зоны","10 минут созерцания",
@@ -68,30 +70,31 @@ const katyaTasks = [
 "Одно новое место / маршрут в неделю"
 ];
 
+// Создаём доску
 function createBoard(name,tasks){
   const grid=document.getElementById(name+"Grid");
   tasks.forEach((task,index)=>{
     const cell=document.createElement("div");
     cell.classList.add("cell");
     cell.innerText=task;
-    cell.onclick=()=>toggleCell(name,index);
+    cell.onclick=function(){ toggleCell(name,index); };
     grid.appendChild(cell);
   });
-  const boardRef=ref(db,name);
-  onValue(boardRef,(snapshot)=>{
+  const boardRef = db.ref(name);
+  boardRef.on('value', snapshot => {
     const data = snapshot.val() || [];
     updateBoard(name,data);
   });
 }
 
 function toggleCell(name,index){
-  const boardRef=ref(db,name);
-  onValue(boardRef,(snapshot)=>{
+  const boardRef = db.ref(name);
+  boardRef.once('value').then(snapshot=>{
     let data = snapshot.val() || [];
-    if(data.includes(index)) data=data.filter(i=>i!==index);
+    if(data.includes(index)) data = data.filter(i=>i!==index);
     else data.push(index);
-    set(boardRef,data);
-  },{onlyOnce:true});
+    boardRef.set(data);
+  });
 }
 
 function updateBoard(name,state){
@@ -114,15 +117,17 @@ function checkBingo(name,state){
   bingoElement.style.display=hasBingo?"block":"none";
 }
 
-function resetBoard(name){ set(ref(db,name),[]); }
+function resetBoard(name){
+  db.ref(name).set([]);
+}
 
-// 🔹 Делаем функции глобальными
-window.resetBoard=resetBoard;
-window.toggleCell=toggleCell;
+// Подключаем кнопки сброса
+document.getElementById("lisaReset").onclick=function(){ resetBoard("lisa"); };
+document.getElementById("katyaReset").onclick=function(){ resetBoard("katya"); };
 
 // Создаём доски
-createBoard("lisa",lisaTasks);
-createBoard("katya",katyaTasks);
+createBoard("lisa", lisaTasks);
+createBoard("katya", katyaTasks);
 </script>
 
 </body>
