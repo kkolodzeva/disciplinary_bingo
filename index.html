@@ -37,12 +37,10 @@ button { margin-top:15px; padding:8px 15px; border:none; border-radius:6px; curs
 </div>
 </div>
 
-<!-- Подключаем Firebase обычным скриптом -->
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-<script>
-// 🔹 Вставь сюда свой firebaseConfig
 const firebaseConfig = {
   apiKey: "AIzaSyAW9t8w6e32djmNP6FWDTa91Z6KJGEtw9c",
   authDomain: "disciplinary-bingo.firebaseapp.com",
@@ -53,8 +51,8 @@ const firebaseConfig = {
   appId: "1:267561003164:web:164e7ee671780b8ca9a559"
 };
 
-firebase.initializeApp(firebaseConfig);
-const db = firebase.database();
+const app = initializeApp(firebaseConfig);
+const db = getDatabase(app);
 
 const lisaTasks = [
 "10к шагов","Отбой до 00:00","30 минут степпер / зарядка",
@@ -70,31 +68,30 @@ const katyaTasks = [
 "Одно новое место / маршрут в неделю"
 ];
 
-// Создаём доску
 function createBoard(name,tasks){
   const grid=document.getElementById(name+"Grid");
   tasks.forEach((task,index)=>{
     const cell=document.createElement("div");
     cell.classList.add("cell");
     cell.innerText=task;
-    cell.onclick=function(){ toggleCell(name,index); };
+    cell.onclick=()=>toggleCell(name,index);
     grid.appendChild(cell);
   });
-  const boardRef = db.ref(name);
-  boardRef.on('value', snapshot => {
+  const boardRef = ref(db,name);
+  onValue(boardRef,(snapshot)=>{
     const data = snapshot.val() || [];
     updateBoard(name,data);
   });
 }
 
 function toggleCell(name,index){
-  const boardRef = db.ref(name);
-  boardRef.once('value').then(snapshot=>{
+  const boardRef = ref(db,name);
+  onValue(boardRef,(snapshot)=>{
     let data = snapshot.val() || [];
     if(data.includes(index)) data = data.filter(i=>i!==index);
     else data.push(index);
-    boardRef.set(data);
-  });
+    set(boardRef,data);
+  },{onlyOnce:true});
 }
 
 function updateBoard(name,state){
@@ -117,17 +114,18 @@ function checkBingo(name,state){
   bingoElement.style.display=hasBingo?"block":"none";
 }
 
-function resetBoard(name){
-  db.ref(name).set([]);
-}
+function resetBoard(name){ set(ref(db,name),[]); }
 
-// Подключаем кнопки сброса
-document.getElementById("lisaReset").onclick=function(){ resetBoard("lisa"); };
-document.getElementById("katyaReset").onclick=function(){ resetBoard("katya"); };
+window.resetBoard = resetBoard;
+window.toggleCell = toggleCell;
 
-// Создаём доски
-createBoard("lisa", lisaTasks);
-createBoard("katya", katyaTasks);
+document.addEventListener("DOMContentLoaded", ()=>{
+  createBoard("lisa", lisaTasks);
+  createBoard("katya", katyaTasks);
+
+  document.getElementById("lisaReset").onclick=()=>resetBoard("lisa");
+  document.getElementById("katyaReset").onclick=()=>resetBoard("katya");
+});
 </script>
 
 </body>
