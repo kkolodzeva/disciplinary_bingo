@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<title>Дисциплинарное бинго</title>
+
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #f2f2f2;
+        text-align: center;
+        padding: 30px;
+    }
+
+    h1 {
+        margin-bottom: 40px;
+    }
+
+    .boards {
+        display: flex;
+        justify-content: center;
+        gap: 80px;
+        flex-wrap: wrap;
+    }
+
+    .board {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 120px);
+        grid-template-rows: repeat(3, 120px);
+        gap: 10px;
+        margin-top: 15px;
+    }
+
+    .cell {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        color: white;
+        font-size: 14px;
+        cursor: pointer;
+        border-radius: 10px;
+        transition: 0.3s;
+        user-select: none;
+        padding: 8px;
+        text-align: center;
+    }
+
+    .lisa .cell { background-color: #8B0000; }
+    .katya .cell { background-color: #006B3C; }
+
+    .cell.active {
+        opacity: 0.4;
+        transform: scale(0.95);
+    }
+
+    .bingo {
+        margin-top: 10px;
+        font-weight: bold;
+        font-size: 18px;
+        color: green;
+        display: none;
+    }
+
+    button {
+        margin-top: 15px;
+        padding: 8px 15px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+    }
+
+</style>
+</head>
+
+<body>
+
+<h1>Дисциплинарное бинго</h1>
+
+<div class="boards">
+
+    <!-- Лиза -->
+    <div class="board lisa">
+        <h2>Лиза</h2>
+        <div class="grid" id="lisaGrid"></div>
+        <div class="bingo" id="lisaBingo">БИНГО 🎉</div>
+        <button onclick="resetBoard('lisa')">Сброс</button>
+    </div>
+
+    <!-- Катя -->
+    <div class="board katya">
+        <h2>Катя</h2>
+        <div class="grid" id="katyaGrid"></div>
+        <div class="bingo" id="katyaBingo">БИНГО 🎉</div>
+        <button onclick="resetBoard('katya')">Сброс</button>
+    </div>
+
+</div>
+
+<script>
+
+const lisaTasks = [
+"10к шагов",
+"Отбой до 00:00",
+"30 минут степпер / зарядка",
+"8/16",
+"30 минут любой учёбы",
+"30 минут уборки",
+"Не более 30 минут на инсту и 60 минут на ютуб",
+"Полный вечерний уход за лицом",
+"Занятие с Коржиком"
+];
+
+const katyaTasks = [
+"Прогулка не менее 20 минут в день",
+"Зарядка для шеи",
+"Сон 8 часов",
+"Английские слова",
+"Уборка одной зоны",
+"10 минут созерцания",
+"30 минут чтения",
+"Вовремя на работу (пн-пт) / отход ко сну до 00:00 (сб-вс)",
+"Медитация"
+];
+
+function createBoard(name, tasks) {
+    const grid = document.getElementById(name + "Grid");
+    const savedState = JSON.parse(localStorage.getItem(name)) || [];
+
+    tasks.forEach((task, index) => {
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.innerText = task;
+
+        if (savedState.includes(index)) {
+            cell.classList.add("active");
+        }
+
+        cell.onclick = () => toggleCell(name, index, cell);
+
+        grid.appendChild(cell);
+    });
+
+    checkBingo(name);
+}
+
+function toggleCell(name, index, cell) {
+    let state = JSON.parse(localStorage.getItem(name)) || [];
+
+    if (state.includes(index)) {
+        state = state.filter(i => i !== index);
+        cell.classList.remove("active");
+    } else {
+        state.push(index);
+        cell.classList.add("active");
+    }
+
+    localStorage.setItem(name, JSON.stringify(state));
+    checkBingo(name);
+}
+
+function checkBingo(name) {
+    const state = JSON.parse(localStorage.getItem(name)) || [];
+    const bingoElement = document.getElementById(name + "Bingo");
+
+    const wins = [
+        [0,1,2],[3,4,5],[6,7,8], // строки
+        [0,3,6],[1,4,7],[2,5,8], // столбцы
+        [0,4,8],[2,4,6]          // диагонали
+    ];
+
+    const hasBingo = wins.some(combo =>
+        combo.every(index => state.includes(index))
+    );
+
+    bingoElement.style.display = hasBingo ? "block" : "none";
+}
+
+function resetBoard(name) {
+    localStorage.removeItem(name);
+    location.reload();
+}
+
+createBoard("lisa", lisaTasks);
+createBoard("katya", katyaTasks);
+
+</script>
+
+</body>
+</html>
