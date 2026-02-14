@@ -3,25 +3,84 @@
 <head>
 <meta charset="UTF-8">
 <title>Дисциплинарное бинго</title>
+
 <style>
-body { font-family: Arial; background:#f2f2f2; text-align:center; padding:30px; }
-h1 { margin-bottom:40px; }
-.boards { display:flex; justify-content:center; gap:80px; flex-wrap:wrap; }
-.board { display:flex; flex-direction:column; align-items:center; }
-.grid { display:grid; grid-template-columns:repeat(3,120px); grid-template-rows:repeat(3,120px); gap:10px; margin-top:15px; }
-.cell { display:flex; justify-content:center; align-items:center; color:white; font-size:14px; cursor:pointer; border-radius:10px; transition:.3s; user-select:none; padding:8px; text-align:center; }
-.lisa .cell { background-color:#8B0000; }
-.katya .cell { background-color:#006B3C; }
-.cell.active { opacity:.4; transform:scale(.95); }
-.bingo { margin-top:10px; font-weight:bold; font-size:18px; color:green; display:none; }
-button { margin-top:15px; padding:8px 15px; border:none; border-radius:6px; cursor:pointer; }
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f2f2f2;
+    text-align: center;
+    padding: 30px;
+}
+
+h1 { margin-bottom: 40px; }
+
+.boards {
+    display: flex;
+    justify-content: center;
+    gap: 80px;
+    flex-wrap: wrap;
+}
+
+.board {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, 120px);
+    grid-template-rows: repeat(3, 120px);
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 10px;
+    transition: 0.3s;
+    user-select: none;
+    padding: 8px;
+    text-align: center;
+}
+
+.lisa .cell { background-color: #8B0000; }
+.katya .cell { background-color: #006B3C; }
+
+.cell.active {
+    opacity: 0.4;
+    transform: scale(0.95);
+}
+
+.bingo {
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 18px;
+    color: green;
+    display: none;
+}
+
+button {
+    margin-top: 15px;
+    padding: 8px 15px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
 </style>
 </head>
+
 <body>
 
 <h1>Дисциплинарное бинго</h1>
 
 <div class="boards">
+
 <div class="board lisa">
 <h2>Лиза</h2>
 <div class="grid" id="lisaGrid"></div>
@@ -35,21 +94,22 @@ button { margin-top:15px; padding:8px 15px; border:none; border-radius:6px; curs
 <div class="bingo" id="katyaBingo">БИНГО 🎉</div>
 <button id="katyaReset">Сброс</button>
 </div>
+
 </div>
 
 <script type="module">
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
-// 🔹 Вставь свой firebaseConfig
 const firebaseConfig = {
   apiKey: "AIzaSyAW9t8w6e32djmNP6FWDTa91Z6KJGEtw9c",
   authDomain: "disciplinary-bingo.firebaseapp.com",
-  databaseURL: "https://disciplinary-bingo-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "disciplinary-bingo",
   storageBucket: "disciplinary-bingo.firebasestorage.app",
   messagingSenderId: "267561003164",
-  appId: "1:267561003164:web:164e7ee671780b8ca9a559"
+  appId: "1:267561003164:web:164e7ee671780b8ca9a559",
+  databaseURL: "https://disciplinary-bingo-default-rtdb.europe-west1.firebasedatabase.app"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -65,65 +125,72 @@ const lisaTasks = [
 const katyaTasks = [
 "Прогулка не менее 20 минут в день","Зарядка для шеи","Сон 8 часов",
 "Английские слова","Уборка одной зоны","10 минут созерцания",
-"30 минут чтения","Вовремя на работу (пн-пт) / отход ко сну до 00:00 (сб-вс)",
-"Медитация"
+"30 минут чтения","Одна выброшенная вещь в неделю",
+"Одно новое место / маршрут в неделю"
 ];
 
+// Создаём доску
 function createBoard(name, tasks) {
     const grid = document.getElementById(name + "Grid");
-    const boardRef = ref(db, name);
-    onValue(boardRef, snapshot => {
+    tasks.forEach((task,index)=>{
+        const cell = document.createElement("div");
+        cell.classList.add("cell");
+        cell.innerText = task;
+        cell.onclick = ()=>toggleCell(name,index);
+        grid.appendChild(cell);
+    });
+
+    const boardRef = ref(db,name);
+    onValue(boardRef,(snapshot)=>{
         const data = snapshot.val() || [];
-        grid.innerHTML = "";
-        tasks.forEach((task,index)=>{
-            const cell = document.createElement("div");
-            cell.classList.add("cell");
-            cell.innerText = task;
-            if(data.includes(index)) cell.classList.add("active");
-            cell.onclick = () => toggleCell(name,index,cell);
-            grid.appendChild(cell);
-        });
-        checkBingo(name,data);
+        updateBoard(name,data);
     });
 }
 
-function toggleCell(name,index,cell){
+// Клик по клетке
+function toggleCell(name,index){
     const boardRef = ref(db,name);
-    onValue(boardRef, snapshot=>{
+    onValue(boardRef,(snapshot)=>{
         let data = snapshot.val() || [];
-        if(data.includes(index)) {
-            data = data.filter(i=>i!==index);
-            cell.classList.remove("active");
-        } else {
-            data.push(index);
-            cell.classList.add("active");
-        }
+        if(data.includes(index)){ data = data.filter(i=>i!==index); }
+        else{ data.push(index); }
         set(boardRef,data);
-    }, {onlyOnce:true});
+    },{onlyOnce:true});
 }
 
+// Обновление состояния
+function updateBoard(name,state){
+    const cells = document.querySelectorAll("#"+name+"Grid .cell");
+    cells.forEach((cell,index)=>{
+        if(state.includes(index)){ cell.classList.add("active"); }
+        else{ cell.classList.remove("active"); }
+    });
+    checkBingo(name,state);
+}
+
+// Проверка БИНГО
 function checkBingo(name,state){
-    const bingoElement = document.getElementById(name+"Bingo");
-    const wins=[
+const wins = [
         [0,1,2],[3,4,5],[6,7,8],
         [0,3,6],[1,4,7],[2,5,8],
         [0,4,8],[2,4,6]
     ];
-    const hasBingo = wins.some(combo=>combo.every(i=>state.includes(i)));
+    const bingoElement = document.getElementById(name+"Bingo");
+    const hasBingo = wins.some(combo=>combo.every(index=>state.includes(index)));
     bingoElement.style.display = hasBingo ? "block" : "none";
 }
 
-function resetBoard(name){
-    set(ref(db,name),[]);
-}
+// Сброс доски
+function resetBoard(name){ set(ref(db,name),[]); }
 
-window.addEventListener("DOMContentLoaded", ()=>{
-    createBoard("lisa", lisaTasks);
-    createBoard("katya", katyaTasks);
+// Подключаем кнопки сброса
+document.getElementById("lisaReset").addEventListener("click",()=>resetBoard("lisa"));
+document.getElementById("katyaReset").addEventListener("click",()=>resetBoard("katya"));
 
-    document.getElementById("lisaReset").onclick = ()=>resetBoard("lisa");
-    document.getElementById("katyaReset").onclick = ()=>resetBoard("katya");
-});
+// Создаём доски
+createBoard("lisa",lisaTasks);
+createBoard("katya",katyaTasks);
+
 </script>
 
 </body>
