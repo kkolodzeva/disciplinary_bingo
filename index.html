@@ -38,7 +38,7 @@ button { margin-top:15px; padding:8px 15px; border:none; border-radius:6px; curs
 </div>
 
 <script>
-const WEBAPP_URL = "ВСТАВЬ СЮДА ССЫЛКУ НА APPS SCRIPT";
+const WEBAPP_URL = "https://script.google.com/macros/s/AKfycbxxBYZBHNCffusCz-1CQPu1mxKrk2XqvGBN2EbtBNPeDYloGIWBsJ1bJLtHHm209xMGzg/exec";
 const lisaTasks = [
 "10к шагов","Отбой до 00:00","30 минут степпер / зарядка",
 "8/16","30 минут любой учёбы","30 минут уборки",
@@ -85,7 +85,7 @@ function toggleCell(name,index,cell){
 }
 
 function fetchState(){
-    fetch(https://script.google.com/macros/s/AKfycbxxBYZBHNCffusCz-1CQPu1mxKrk2XqvGBN2EbtBNPeDYloGIWBsJ1bJLtHHm209xMGzg/exec+"?action=get")
+    fetch(WEBAPP_URL +"?action=get")
     .then(r=>r.json())
     .then(data=>{
         state = data;
