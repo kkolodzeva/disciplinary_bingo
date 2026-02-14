@@ -41,12 +41,13 @@ button { margin-top:15px; padding:8px 15px; border:none; border-radius:6px; curs
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
 
+// 🔹 Вставь свой firebaseConfig
 const firebaseConfig = {
   apiKey: "AIzaSyAW9t8w6e32djmNP6FWDTa91Z6KJGEtw9c",
   authDomain: "disciplinary-bingo.firebaseapp.com",
   databaseURL: "https://disciplinary-bingo-default-rtdb.europe-west1.firebasedatabase.app",
   projectId: "disciplinary-bingo",
-  storageBucket: "disciplinary-bingo.firebasedestorage.app",
+  storageBucket: "disciplinary-bingo.firebasestorage.app",
   messagingSenderId: "267561003164",
   appId: "1:267561003164:web:164e7ee671780b8ca9a559"
 };
@@ -64,67 +65,64 @@ const lisaTasks = [
 const katyaTasks = [
 "Прогулка не менее 20 минут в день","Зарядка для шеи","Сон 8 часов",
 "Английские слова","Уборка одной зоны","10 минут созерцания",
-"30 минут чтения","Одна выброшенная вещь в неделю",
-"Одно новое место / маршрут в неделю"
+"30 минут чтения","Вовремя на работу (пн-пт) / отход ко сну до 00:00 (сб-вс)",
+"Медитация"
 ];
 
-function createBoard(name,tasks){
-  const grid=document.getElementById(name+"Grid");
-  tasks.forEach((task,index)=>{
-    const cell=document.createElement("div");
-    cell.classList.add("cell");
-    cell.innerText=task;
-    cell.onclick=()=>toggleCell(name,index);
-    grid.appendChild(cell);
-  });
-  const boardRef = ref(db,name);
-  onValue(boardRef,(snapshot)=>{
-    const data = snapshot.val() || [];
-    updateBoard(name,data);
-  });
+function createBoard(name, tasks) {
+    const grid = document.getElementById(name + "Grid");
+    const boardRef = ref(db, name);
+    onValue(boardRef, snapshot => {
+        const data = snapshot.val() || [];
+        grid.innerHTML = "";
+        tasks.forEach((task,index)=>{
+            const cell = document.createElement("div");
+            cell.classList.add("cell");
+            cell.innerText = task;
+            if(data.includes(index)) cell.classList.add("active");
+            cell.onclick = () => toggleCell(name,index,cell);
+            grid.appendChild(cell);
+        });
+        checkBingo(name,data);
+    });
 }
 
-function toggleCell(name,index){
-  const boardRef = ref(db,name);
-  onValue(boardRef,(snapshot)=>{
-    let data = snapshot.val() || [];
-    if(data.includes(index)) data = data.filter(i=>i!==index);
-    else data.push(index);
-    set(boardRef,data);
-  },{onlyOnce:true});
-}
-
-function updateBoard(name,state){
-  const cells=document.querySelectorAll("#"+name+"Grid .cell");
-  cells.forEach((cell,index)=>{
-    if(state.includes(index)) cell.classList.add("active");
-    else cell.classList.remove("active");
-  });
-  checkBingo(name,state);
+function toggleCell(name,index,cell){
+    const boardRef = ref(db,name);
+    onValue(boardRef, snapshot=>{
+        let data = snapshot.val() || [];
+        if(data.includes(index)) {
+            data = data.filter(i=>i!==index);
+            cell.classList.remove("active");
+        } else {
+            data.push(index);
+            cell.classList.add("active");
+        }
+        set(boardRef,data);
+    }, {onlyOnce:true});
 }
 
 function checkBingo(name,state){
-  const wins=[
-    [0,1,2],[3,4,5],[6,7,8],
-    [0,3,6],[1,4,7],[2,5,8],
-    [0,4,8],[2,4,6]
-  ];
-  const bingoElement=document.getElementById(name+"Bingo");
-  const hasBingo=wins.some(combo=>combo.every(i=>state.includes(i)));
-  bingoElement.style.display=hasBingo?"block":"none";
+    const bingoElement = document.getElementById(name+"Bingo");
+    const wins=[
+        [0,1,2],[3,4,5],[6,7,8],
+        [0,3,6],[1,4,7],[2,5,8],
+        [0,4,8],[2,4,6]
+    ];
+    const hasBingo = wins.some(combo=>combo.every(i=>state.includes(i)));
+    bingoElement.style.display = hasBingo ? "block" : "none";
 }
 
-function resetBoard(name){ set(ref(db,name),[]); }
+function resetBoard(name){
+    set(ref(db,name),[]);
+}
 
-window.resetBoard = resetBoard;
-window.toggleCell = toggleCell;
+window.addEventListener("DOMContentLoaded", ()=>{
+    createBoard("lisa", lisaTasks);
+    createBoard("katya", katyaTasks);
 
-document.addEventListener("DOMContentLoaded", ()=>{
-  createBoard("lisa", lisaTasks);
-  createBoard("katya", katyaTasks);
-
-  document.getElementById("lisaReset").onclick=()=>resetBoard("lisa");
-  document.getElementById("katyaReset").onclick=()=>resetBoard("katya");
+    document.getElementById("lisaReset").onclick = ()=>resetBoard("lisa");
+    document.getElementById("katyaReset").onclick = ()=>resetBoard("katya");
 });
 </script>
 
